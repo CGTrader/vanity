@@ -7,6 +7,8 @@ class VanityMigration < ActiveRecord::Migration
     add_index :vanity_metrics, [:metric_id]
 
     create_table :vanity_metric_values do |t|
+      t.string :experiment_id
+      t.integer :alternative
       t.integer :vanity_metric_id
       t.integer :index
       t.integer :value

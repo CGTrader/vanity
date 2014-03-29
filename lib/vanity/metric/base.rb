@@ -86,8 +86,9 @@ module Vanity
       def data(metric, *args)
         first = args.shift || 90
         to = args.shift || Date.today
+        options = args.shift || {}
         from = first.respond_to?(:to_date) ? first.to_date : to - (first - 1)
-        (from..to).zip(metric.values(from, to))
+        (from..to).zip(metric.values(from, to, options))
       end
 
       # Playground uses this to load metric definitions.
@@ -169,6 +170,14 @@ module Vanity
       @hooks << block
     end
 
+    def hook_once(hook_id, &block)
+      @applied_hooks ||= []
+      unless @applied_hooks.include?(hook_id)
+        @applied_hooks << hook_id
+        @hooks << block
+      end
+    end
+
     # This method returns the acceptable bounds of a metric as an array with
     # two values: low and high. Use nil for unbounded.
     #
@@ -206,8 +215,8 @@ module Vanity
 
     # Given two arguments, a start date and an end date (inclusive), returns an
     # array of measurements. All metrics must implement this method.
-    def values(from, to)
-      values = connection.metric_values(@id, from, to)
+    def values(from, to, options = {})
+      values = connection.metric_values(@id, from, to, options)
       values.map { |row| row.first.to_i }
     end
 
@@ -234,6 +243,7 @@ module Vanity
     end
 
     def call_hooks(timestamp, identity, values)
+      @playground.logger.info "VANITY: #{@hooks.inspect}"
       @hooks.each do |hook|
         hook.call @id, timestamp, values.first || 1, :identity=>identity
       end

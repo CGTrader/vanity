@@ -458,6 +458,26 @@ module Vanity
         @metrics.each do |metric|
           metric.hook &method(:track!)
         end
+
+        @playground.metrics.each do |metric_id, metric|
+          metric.hook_once metric_id, &method(:track_alternatives!)
+        end
+      end
+
+      def track_alternatives!(metric_id, timestamp, count, *args)
+        return unless active?
+        identity = identity() rescue nil
+        identity ||= args.last[:identity] if args.last.is_a?(Hash) && args.last[:identity]
+
+        if identity
+          return if connection.ab_showing(@id, identity)
+          index = alternative_for(identity)
+        
+          @playground.experiments.each do |experiment_id, experiment|
+            alternative = experiment.send(:alternative_for, identity)
+            connection.metric_track_with_merge metric_id, timestamp, identity, count, experiment_id, alternative
+          end
+        end
       end
 
       # Called via a hook by the associated metric.

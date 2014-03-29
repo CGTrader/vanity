@@ -20,9 +20,18 @@
 .vanity .metric { margin: 2em 0 }
 .vanity .metric .chart { width:100%; margin: .6em 0 }
 .vanity .metric .legend { float: left; width:20%; padding-right: 1em; overflow: hidden }
+
+.vanity .metric.metric-for-alternative { width: 80%; float: left; margin: 0;}
+.vanity .metric.metric-for-alternative #chart { height: 50px;}
+.vanity .alternative-title-for-metric { width: 20%; float: left; margin: 0;}
+
 .vanity form#milestones { margin: 1em 0 }
 .vanity form#milestones label { margin-right: .5em }
 .vanity form#milestones input { vertical-align: bottom }
 .vanity .metric .marking.label { position: absolute; bottom: 2em; color: #c66; font-size: 80% }
 
 .vanity .alert { padding: 8px 35px 8px 14px; margin-bottom: 20px; text-shadow: 0px 1px 0px rgba(255, 255, 255, 0.5); background-color: rgb(252, 248, 227); border: 1px solid rgb(251, 238, 213); border-radius: 4px 4px 4px 4px; }
+
+.vanity .grid { width: 100%;}
+.vanity .l-inner { padding: 30px 20px;}
+.vanity .grid:after { content: ""; display: table; clear: both;}

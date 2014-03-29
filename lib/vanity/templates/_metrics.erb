@@ -1,10 +1,33 @@
-<ul class="metrics">
+<div class="metrics">
+  <h2>Global</h2>
   <% metrics.sort_by { |id, metric| metric.name }.each do |id, metric| %>
-    <li class="metric" id="metric_<%= id %>">
-      <%= render :file=>Vanity.template("_metric"), :locals=>{:id=>id, :metric=>metric} %>
-    </li>
+      <div class="metric" id="metric_<%= id %>">
+        <%= render :file => Vanity.template("_metric"), :locals => {:id => id, :metric => metric, :experiment_id => nil, :alternative => nil} %>
+      </div>
   <% end %>
-</ul>
+<hr>
+  <h2>By experiment</h2>
+  <% experiments.each do |experiment_id, experiment| %>
+      <h2><%= experiment.description.to_s %></h2>
+      <hr>
+      <% metrics.sort_by { |id, metric| metric.name }.each do |id, metric| %>
+        <h3><%=vanity_h metric.name %></h3>
+        <%= vanity_simple_format vanity_h(Vanity::Metric.description(metric).to_s), :class=>"description" %>
+        <% experiment.alternatives.each do |alternative| %>
+          <div class="grid">
+            <div class="alternative-title-for-metric">
+              <div class="l-inner">
+                <%= alternative.name.gsub(/^o/, "O") %>: <code><%=vanity_h alternative.value.to_s %></code>
+              </div>
+            </div>
+            <div class="metric metric-for-alternative" id="metric_<%= "#{experiment.id}_#{alternative.id}_#{id}" %>">
+              <%= render :file => Vanity.template("_metric_for_alternative"), :locals => {:id => "#{experiment.id}_#{alternative.id}_#{id}", :metric => metric, :experiment_id => experiment.id, :alternative => alternative.id} %>
+            </div>
+          </div>
+        <% end %>
+      <% end %>
+  <% end %>
+</div>
 <form id="milestones">
   <% experiments.each do |id, experiment| %>
     <label><input type="checkbox" name="milestone" data-start="<%= experiment.created_at.httpdate %>"

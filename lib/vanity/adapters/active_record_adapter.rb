@@ -64,7 +64,7 @@ module Vanity
 
       # Metric value
       class VanityMetricValue < VanityRecord
-        attr_accessible :date, :index, :value if needs_attr_accessible?
+        attr_accessible :date, :index, :value, :experiment_id, :alternative if needs_attr_accessible?
 
         self.table_name = :vanity_metric_values
         belongs_to :vanity_metric
@@ -157,11 +157,37 @@ module Vanity
         record.save
       end
 
-      def metric_values(metric, from, to)
+      def metric_track_with_merge(metric, timestamp, identity, first_value, experiment_id = nil, alternative = nil)
+        record = VanityMetric.retrieve(metric)
+        
+        vanity_metric_value_attributes = {
+          :date => timestamp.to_date.to_s,
+          :experiment_id => experiment_id.to_s,
+          :alternative => alternative
+        }
+        
+        vanity_metric_value = record.vanity_metric_values.where(vanity_metric_value_attributes).first
+        vanity_metric_value ||= record.vanity_metric_values.build(vanity_metric_value_attributes)
+
+        vanity_metric_value.value ||= 0
+        vanity_metric_value.value += first_value
+        vanity_metric_value.save
+        
+        record.touch_with_grace_period
+        record.save
+      end
+
+      def metric_values(metric, from, to, options = {})
         connection = VanityMetric.connection
         record = VanityMetric.retrieve(metric)
         dates = (from.to_date..to.to_date).map(&:to_s)
-        conditions = [connection.quote_column_name('date') + ' BETWEEN ? AND ?', from.to_date, to.to_date]
+
+        conditions = if options[:experiment_id].present? && options[:alternative].present?
+                      ["(#{connection.quote_column_name('date')} BETWEEN ? AND ?) AND (#{connection.quote_column_name('experiment_id')} = ?) AND (#{connection.quote_column_name('alternative')} = ?)", from.to_date, to.to_date, options[:experiment_id], options[:alternative]]
+                    else
+                      ["(#{connection.quote_column_name('date')} BETWEEN ? AND ?) AND (#{connection.quote_column_name('experiment_id')} IS NULL ) AND (#{connection.quote_column_name('alternative')} IS NULL )", from.to_date, to.to_date]
+                    end
+        Vanity.playground.logger.error "VANITY: #{conditions}"
         order = "#{connection.quote_column_name('date')}"
         select = "sum(#{connection.quote_column_name('value')}) AS value, #{connection.quote_column_name('date')}"
         group_by = "#{connection.quote_column_name('date')}"
@@ -173,10 +199,12 @@ module Vanity
           :group => group_by
         )
 
-        dates.map do |date|
+        results = dates.map do |date|
           value = values.detect{|v| v.date == date }
           [(value && value.value) || 0]
         end
+        Vanity.playground.logger.error "VANITY: #{results.last}"
+        results
       end
 
       def destroy_metric(metric)

@@ -1,5 +1,4 @@
-<h3><%=vanity_h metric.name %></h3>
-<%= vanity_simple_format vanity_h(Vanity::Metric.description(metric).to_s), :class=>"description" %>
+
 <%=
 begin 
   data = Vanity::Metric.data(metric, Date.today - 89, Date.today,  { experiment_id: experiment_id, alternative: alternative  })
